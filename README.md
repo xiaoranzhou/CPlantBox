@@ -25,7 +25,7 @@ Create the documentation by running doxygen in the folder
 $ doxygen doxy_config
 
 The documentation should now be located in the folder /doc
-
+..
 
 # Example
 

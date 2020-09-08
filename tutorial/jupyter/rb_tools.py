@@ -1,7 +1,8 @@
 import os
-
+import sys
 import numpy as np
-import py_plantbox as pb   
+sys.path.append("../..")
+import plantbox as pb #CPlantBox Python Binding
 
 #
 # Auxiliary functions that could be moved to py_rootbox

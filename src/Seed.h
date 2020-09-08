@@ -1,48 +1,60 @@
 #ifndef SEED_H_
 #define SEED_H_
 
-
 #include "Organ.h"
+#include "Organism.h"
+#include "seedparameter.h"
 
 namespace CPlantBox {
-
-
-class Plant;
 
 /**
  * Seed
  *
- * the main organ of the plant,
- * simulate calls the simulate method of the stem, and base roots
+ * Creates one node, which is the origin of stem, tillers, tap, and basal
  *
+ * simulate calls the simulate method of the stem, and base roots
  */
 class Seed : public Organ
 {
-
 public:
 
-	Seed(Plant* plant);
-	virtual ~Seed() { };
+    Seed(int id, std::shared_ptr<const OrganSpecificParameter> param, bool alive, bool active, double age, double length,
+        bool moved= false, int oldNON = 0)
+	:Organ(id, param, alive, active, age, length, Vector3d(), 0., 0, moved, oldNON) { }; ///< creates everything from scratch
+    Seed(std::shared_ptr<Organism> plant); ///< used within simulation
+    virtual ~Seed() { };
 
-	virtual int organType() const override { return Organ::ot_seed; };
+    std::shared_ptr<Organ> copy(std::shared_ptr<Organism> rs) override;  ///< deep copies the seed
 
-	virtual Vector3d getRelativeOrigin() const override { return seed_pos; };
-	///< the relative position within the parent organ
-	Vector3d getseedPos(SeedParameter* sparam) const { return sparam->seedPos; };
-	virtual void setRelativeOrigin(const Vector3d& o) override { seed_pos = o; };
-	///< the relative position within the parent organ
-	virtual SeedParameter* initializeparam();
-	virtual void initialize(SeedParameter* sparam);
-    	virtual void setRelativeHeading(const Matrix3d& m) override { this->A = m; };
-	virtual std::string toString() const override;
+    virtual int organType() const override { return Organism::ot_seed; }
 
-	const int basalType = 4;
-	const int tillerType = 4;
-	Vector3d seed_pos;
-     	Matrix3d A; // relative heading
+    virtual std::string toString() const override;
+
+    void initialize(bool verbose = true);
+
+    std::shared_ptr<const SeedSpecificParameter> param() const { return std::static_pointer_cast<const SeedSpecificParameter>(param_); }
+
+    int getNumberOfRootCrowns() const { return numberOfRootCrowns; } // for rootsystem initialisation
+    std::vector<std::shared_ptr<Organ>> baseOrgans() { return children; } // created by initialize
+    std::vector<std::shared_ptr<Organ>> copyBaseOrgans(); ///< shallow copy of the childs
+
+    virtual std::shared_ptr<Organ> createRoot(std::shared_ptr<Organism> plant, int type, Vector3d heading, double delay); ///< overwrite if you want to change class types
+    virtual std::shared_ptr<Organ> createStem(std::shared_ptr<Organism> plant, int type, Vector3d heading, double delay); ///< overwrite if you want to change class types
+
+    // default positions (unused) (TODO) make nicer
+    int tapType = 1;
+    int basalType = 4;
+    int shootborneType = 5;
+    int mainStemType = 1;
+    int tillerType = 4;
+
+protected:
+
+    int numberOfRootCrowns = 0;
+    int getParamSubType(int organtype, std::string str);
+
 };
 
-
-} // namespace CPlantBox
+}
 
 #endif /* Seed_H_ */

@@ -1,24 +1,17 @@
 #ifndef STEM_H_
 #define STEM_H_
 
+#include "Organ.h"
+#include "Organism.h"
+#include "stemparameter.h"
+
 #include <iostream>
 #include <assert.h>
 
-#include "Organ.h"
-#include "mymath.h"
-#include "sdf.h"
-#include "StemTropism.h"
-#include "StemGrowth.h"
-#include "ModelParameter.h"
-
 namespace CPlantBox {
 
-
-
 class Plant;
-class StemParameter;
-class StemRandomOrganParameter;
-static int phytomerId[10]= {0};
+
 /**
  * Stem
  *
@@ -28,71 +21,54 @@ static int phytomerId[10]= {0};
  */
 class Stem : public Organ
 {
-	friend class Leaf;
-
-
-
 public:
 
-	Stem(Plant* plant, Organ* parent, int subtype, double delay, Vector3d isheading, int pni, double pbl); ///< typically called by constructor of Plant::Plant, or Stem::createLaterals()
-	virtual ~Stem() { }; // base class constructor is called automatically in c++
+    static std::vector<int> phytomerId;
 
-	virtual int organType() const override { return Organ::ot_stem; };
+    Stem(int id,  std::shared_ptr<const OrganSpecificParameter> param, bool alive, bool active, double age, double length,
+        Vector3d iheading, double pbl, int pni, bool moved = false, int oldNON = 0);
+    Stem(std::shared_ptr<Organism> plant, int type, Vector3d iheading, double delay, std::shared_ptr<Organ> parent, double pbl, int pni); ///< used within simulation
+    virtual ~Stem() { };
 
-	/* simulation */
-	virtual void simulate(double dt, bool silence = false) override; ///< stem growth for a time span of \param dt
+    std::shared_ptr<Organ> copy(std::shared_ptr<Organism> plant) override;   ///< deep copies the root tree
 
-	/* get results */
-	virtual double getScalar(std::string name) const override; ///< returns an organ parameter of Plant::ScalarType
+    int organType() const override { return Organism::ot_stem; } ///< returns the organs type
 
-	/* exact from analytical equations */
-	double getCreationTime(double lenght); ///< analytical creation (=emergence) time of a node at a length
-	double StemGetLength(double age); ///< analytical length of the stem
-	double StemGetAge(double length); ///< analytical age of the stem
-	/* abbreviations */
-	StemParameter* sParam() const { return (StemParameter*)param;  } ///< type cast
-	StemRandomOrganParameter* stParam() const; // type cast
-	double dx() const; ///< returns the axial resolution
-	//Vector3d relHeading() const; //< relative heading of the stem tip
-	//Vector3d absHeading() const; //< absolute heading of the stem tip
+    void simulate(double dt, bool silence = false) override; ///< stem growth for a time span of \param dt
 
-	/* IO */
-	void writeRSML(std::ostream & cout, std::string indent) const; ///< writes a RSML stem tag
-	std::string toString() const;
+    double getParameter(std::string name) const override; ///< returns an organ parameter
 
-	/* nodes */
-	void addNode(Vector3d n, double t); //< adds a node to the stem
+    std::string toString() const override;
 
-	/* parameters that are given per stem that are constant*/
-	int pni; ///< parent node index
-	double pbl; ///< length [cm]
+    /* exact from analytical equations */
+    double calcCreationTime(double lenght); ///< analytical creation (=emergence) time of a node at a length
+    double calcLength(double age); ///< analytical length of the stem
+    double calcAge(double length); ///< analytical age of the stem
 
-	const double smallDx = 1e-6; ///< threshold value, smaller segments will be skipped (otherwise stem tip direction can become NaN)
+    /* abbreviations */
+    std::shared_ptr<StemRandomParameter> getStemRandomParameter() const;  ///< root type parameter of this root
+    std::shared_ptr<const StemSpecificParameter> param() const; ///< root parameter
+	std::shared_ptr<Plant> getPlant();
+    double dx() const; ///< returns the axial resolution
 
-	int StemID = 0; //declare Stem id.
-	virtual void setRelativeOrigin(const Vector3d& o) override { this->o = o; }
-	virtual Vector3d getRelativeOrigin() const override { return o;  }
-	virtual void setRelativeHeading(const Matrix3d& m) override { this->A = m; }
-	virtual Matrix3d getRelativeHeading() const override { return A; }
-	Vector3d initialStemHeading;
-	Vector3d heading() const; /// current heading of the root tip
-	Vector3d o;
-	Matrix3d A; // relative heading
-double parent_base_length; ///< length [cm]
-	int parent_ni; ///< parent node index
+    int shootborneType = 5;
 
-    	void minusPhytomerId(int subtype) { phytomerId[subtype]--;  }
-	int getphytomerId(int subtype) { return phytomerId[subtype]; }
-	void addPhytomerId(int subtype) { phytomerId[subtype]++;  }
 protected:
 
+    void minusPhytomerId(int subtype) { phytomerId[subtype]--;  }
+    int getphytomerId(int subtype) { return phytomerId[subtype]; }
+    void addPhytomerId(int subtype) { phytomerId[subtype]++;  }
 
-	void createSegments(double l, bool silence); ///< creates segments of length l, called by stem::simulate()
+    void createLateral(bool silence); ///< creates a new lateral, called by Stem::simulate()
+    void leafGrow(bool silence, Vector3d bud);
+    void shootBorneRootGrow(bool silence);
+
+    Vector3d heading() const; /// current heading of the root tip
     virtual Vector3d getIncrement(const Vector3d& p, double sdx); ///< called by createSegments, to determine growth direction
-	void createLateral(bool silence); ///< creates a new lateral, called by Stem::simulate()
-	void LeafGrow(bool silence, Vector3d bud);
-	void ShootBorneRootGrow(bool silence);
-	int old_non = 0; // relative origin
+    void createSegments(double l, bool silence); ///< creates segments of length l, called by stem::simulate()
+
+    bool firstCall = true;
+    const double smallDx = 1e-6; ///< threshold value, smaller segments will be skipped (otherwise stem tip direction can become NaN)
 
 };
 
